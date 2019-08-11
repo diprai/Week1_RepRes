@@ -1,0 +1,100 @@
+#    Reproducible Research: Week 2: Course Project
+##########################################################################################################################
+
+
+#Loading and preprocessing the data
+actdata = read.csv("activity.csv")
+
+#Mean total number of steps taken per day?
+totalSteps <- aggregate(steps ~ date, actdata, FUN=sum)
+summary(totalSteps)
+
+#Histogram of the total number of steps taken each day
+hist(totalSteps$steps,
+     main = "Total No. of Steps per Day",
+     xlab = "Number of Steps")
+
+#The mean of the total number of steps taken per day
+meanS <- mean(totalSteps$steps, na.rm = TRUE)
+summary(meanS)
+
+#The median of the total number of steps taken per day
+medianS <- median(totalSteps$steps, na.rm = TRUE)
+summary(medianS)
+
+#Average daily activity pattern
+# Time series plot of the 5-minute interval (x-axis) 
+#and the average number of steps taken, averaged across all days (y-axis)
+install.packages("ggplot2")
+library(ggplot2)
+avg_steps <- aggregate(steps ~ interval, actdata, mean)
+ggplot(data = avg_steps, aes(x = interval, y = steps)) +
+        geom_line() +
+        ggtitle("Average daily activity pattern") +
+        xlab("5-minute Interval") +
+        ylab("Average no. of steps") +
+        theme(plot.title = element_text(hjust = 0.5))
+
+
+#Imputing missing values
+
+#total number of missing values in the dataset
+misVals <- is.na(actdata$steps)
+summary(misVals)
+
+#Strategy for filling in all of the missing values in the dataset
+#Using mean to fill missing values
+new_data <- imp_activityData <- transform(actdata,
+                                          steps = ifelse(is.na(actdata$steps),
+                                                         avg_steps$steps[match(actdata$interval, 
+                                                                               avg_steps$interval)],
+                                                         actdata$steps))
+
+#Histogram of the total number of steps taken each day
+totalS<- aggregate(steps ~ date, new_data, FUN=sum)
+hist(totalS$steps,
+     main = "Imputed Number of Steps Per Day",
+     xlab = "Number of Steps")
+
+#Mean of total number of steps taken per day
+New_MeanSteps <- mean(totalS$steps, na.rm = TRUE)
+
+#Median of total number of steps take per day
+New_MedSteps <- median(totalS$steps, na.rm = TRUE)
+
+#Difference in mean steps between imputed and original data
+diffMean = New_MeanSteps - meanS
+diffMean
+
+#Difference in median steps between imputed and original data
+diffMed = New_MedSteps - medianS
+diffMed
+
+diffTotal = sum(totalS$steps) - sum(totalSteps$steps)
+diffTotal
+
+#Differences in activity patterns between weekdays and weekends
+
+#A new factor variable in the dataset with two levels – “weekday” and “weekend” 
+Day <- function(date) {
+        day <- weekdays(date)
+        if (day %in% c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'))
+                return ("weekeday")
+        else if (day %in% c('Saturday', 'Sunday'))
+                return ("weekend")
+        else
+                stop ("Invalid Date Format.")
+}
+
+new_data$date <- as.Date(new_data$date)
+new_data$day <- sapply(new_data$date, FUN = Day)
+
+#Panel Plot
+meanS_day <- aggregate(steps ~ interval + day, new_data, mean)
+ggplot(data = meanS_day, aes(x = interval, y = steps)) + 
+        geom_line() +
+        facet_grid(day ~ .) +
+        ggtitle(" Activity pattern") +
+        xlab("5-minute interval") +
+        ylab("Average no of steps") +
+        theme(plot.title = element_text(hjust = 0.5))
